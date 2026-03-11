@@ -1,0 +1,4 @@
+.minecraft
+__pycache__
+/config.yaml
+logs
