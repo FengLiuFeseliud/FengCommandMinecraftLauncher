@@ -20,7 +20,7 @@ class MinecraftLauncher:
         self.config = Config(log)
         self.config.read_config()
 
-        self.http = HttpUtils(log, retries=self.config.retries, limit=self.config.limit)
+        self.http = HttpUtils(log, retries=self.config.retries, limit=self.config.limit, chunk_size=self.config.chunk_size)
         self.mc = McApi(self.http, log)
         self.fabric = FabricApi(self.http, log)
         self.log = log
@@ -50,8 +50,8 @@ class MinecraftLauncher:
             Prompt.ask("回车显示下一页...")
 
 
-    async def download_version(self, version: str):
-        await self.mc.download(version)
+    async def download_version(self, version: str, version_name: str | None = None):
+        await self.mc.download(version, version_name)
 
     async def login(self):
         pass
@@ -64,8 +64,8 @@ class MinecraftLauncher:
         for lib in fabric_json["libraries"]:
             path_dict = maven_to_path(lib["name"], ".minecraft/assets/libraries/")
             lib_paths.append(os.path.abspath(os.path.join(path_dict["path"], path_dict["lib_name"])))
-
-        return f"java {jvm_items_str} {jvm_str};{os.path.abspath(versions_jar_path)}; {fabric_json['mainClass']} {fabric_json["arguments"]["jvm"][0]} {game_arguments}"
+    
+        return f"java {jvm_items_str} {jvm_str};{os.path.abspath(versions_jar_path)}; {fabric_json["arguments"]["jvm"][0].replace(" ","")} {fabric_json['mainClass']} {game_arguments}"
 
     def _get_launch_arguments(self, versions_files: MinecrafFiles, versions_path: str, versions_name: str, versions_jar_path: str, username: str = "test") -> str:
         os_name = platform.system().lower()
@@ -127,13 +127,15 @@ class MinecraftLauncher:
 
         return launch_arguments
 
+    def reset_versions_name(self):
+        pass
+
     async def launch(self, versions_name: str):
         versions_path = os.path.join(".minecraft/versions", versions_name)
         versions_json_path = os.path.join(versions_path, f"{versions_name}.json")
         versions_jar_path = os.path.join(versions_path, f"{versions_name}.jar")
-        asset_index_path = os.path.join(".minecraft/assets/indexes", f"{versions_name}.json")
         
-        if not os.path.exists(versions_json_path) or not os.path.exists(versions_jar_path) or not os.path.exists(asset_index_path):
+        if not os.path.exists(versions_json_path) or not os.path.exists(versions_jar_path):
             self.log.error(f"版本 {versions_name} 相关文件不存在...")
             return
         
@@ -141,11 +143,11 @@ class MinecraftLauncher:
         with open(versions_json_path, "r", encoding="utf-8") as f:
             versions_files = json.loads(f.read())
 
-        if not versions_files:
+        asset_index_path = os.path.join(".minecraft/assets/indexes", f"{versions_files["id"]}.json")
+        if not versions_files or not os.path.exists(asset_index_path):
             self.log.error(f"版本 {versions_name} 相关文件不存在...")
             return
         
-        print(self._get_launch_arguments(versions_files, versions_path, versions_name, versions_jar_path))
         subprocess.run(self._get_launch_arguments(versions_files, versions_path, versions_name, versions_jar_path).split(" "))
         
     async def stop(self):

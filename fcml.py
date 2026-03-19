@@ -8,7 +8,7 @@ import sys
 async def main():
     FORMAT = "%(message)s"
     logging.basicConfig(
-        level="NOTSET", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
+        level="INFO", format=FORMAT, datefmt="[%X]", handlers=[RichHandler()]
     )
     log = logging.getLogger("rich")
 
@@ -16,9 +16,9 @@ async def main():
     
     try:
         if len(sys.argv) < 2:
-            await fcml.download_version("1.21.11")
-            await fcml.fabric.download("0.18.4", "1.21.11")
-            await fcml.launch("1.21.11")
+            await fcml.download_version("1.17")
+            await fcml.launch("1.17")
+            return
 
         if sys.argv[1] == "help":
             print("Usage: python fcml.py [command]")

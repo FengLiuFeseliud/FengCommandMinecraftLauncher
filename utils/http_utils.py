@@ -6,11 +6,12 @@ import aiohttp
 import os
 
 class HttpUtils:
-    def __init__(self, log: Logger, retries: int = 3, limit: int = 12):
+    def __init__(self, log: Logger, retries: int = 3, limit: int = 12, chunk_size: int = 128):
         self.retries = retries
         self.limit = limit
         self.session = None
         self.log = log
+        self.chunk_size = chunk_size
         
         self.progress = Progress(
             *Progress.get_default_columns(), 
@@ -60,7 +61,7 @@ class HttpUtils:
                 async with aiofiles.open(file_down_path, 'wb') as f:
                     self.progress.reset(progress_task, total=size, visible=True)
                     while True:
-                        chunk = await response.content.read(1024)
+                        chunk = await response.content.read(self.chunk_size * 1024)
                         if file_sha1 != None:
                             file_sha1.update(chunk)
                         
@@ -68,7 +69,7 @@ class HttpUtils:
                             break
 
                         await f.write(chunk)
-                        self.progress.update(progress_task, advance=1024)
+                        self.progress.update(progress_task, advance=len(chunk))
                         self.progress.refresh()
                 
                 if sha1 != None and file_sha1.hexdigest() != sha1:
