@@ -6,7 +6,6 @@ def maven_to_path(maven_name: str, to_path: str) -> dict["name": str, "var": str
     lib_name = f"{lib_path[1]}-{lib_path[2]}.jar"
 
     lib_sub_path = "/".join(lib_path[0].split("."))
-    path = f".minecraft/assets/libraries/{lib_sub_path}/{lib_path[1]}/{lib_path[2]}"
     return {
         "name": lib_path[1],
         "var": lib_path[2],

@@ -1,4 +1,6 @@
 .minecraft
+.mc
 __pycache__
 /config.yaml
 logs
+test

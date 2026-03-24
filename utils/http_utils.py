@@ -1,17 +1,25 @@
+from abc import ABCMeta, abstractmethod
 import asyncio, aiofiles
 from logging import Logger
 from rich.progress import BarColumn, DownloadColumn, Progress, TransferSpeedColumn
 import hashlib
 import aiohttp
 import os
+from mirror import *
+
 
 class HttpUtils:
-    def __init__(self, log: Logger, retries: int = 3, limit: int = 12, chunk_size: int = 128):
+    def __init__(self, log: Logger, retries: int = 3, limit: int = 12, chunk_size: int = 1024, mirror: str | None = None):
         self.retries = retries
         self.limit = limit
         self.session = None
         self.log = log
         self.chunk_size = chunk_size
+
+        if mirror == "bmcl":
+            self.mirror = BmclMirror()
+        else:
+            self.mirror = McMirror()
         
         self.progress = Progress(
             *Progress.get_default_columns(), 
@@ -39,6 +47,17 @@ class HttpUtils:
                 return
         
             return await self.get(url, retries_count)
+        
+    async def get_text(self, url: str, retries_count: int = 0):
+        try:
+            async with self.get_session().get(url) as response:
+                return await response.text()
+        except Exception as err:
+            retries_count += 1
+            if retries_count == self.retries:
+                return
+        
+            return await self.get_text(url, retries_count)
     
     async def download_file(self, url: str, path: str, file_name: str, sha1: str | None, size: int, retries_count: int = 0):
         if retries_count == self.retries:
@@ -70,7 +89,6 @@ class HttpUtils:
 
                         await f.write(chunk)
                         self.progress.update(progress_task, advance=len(chunk))
-                        self.progress.refresh()
                 
                 if sha1 != None and file_sha1.hexdigest() != sha1:
                     raise ValueError(f"SHA1 校验失败: 期望 {sha1}, 实际 {file_sha1.hexdigest()}")
